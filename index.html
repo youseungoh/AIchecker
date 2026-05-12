@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI작성률 검사기 (by Seung-oh)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap');
+  @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+
+  :root {
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --border: #ececec;
+    --border-soft: #f3f3f3;
+    --text: #1a1a1a;
+    --text-sub: #6b7280;
+    --text-mute: #9ca3af;
+    --accent: #0070f3;
+    --accent-soft: #e6f0ff;
+    --green: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+    letter-spacing: -0.01em;
+  }
+
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 60px 24px 80px;
+  }
+
+  /* HEADER */
+  .header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 24px;
+    padding: 6px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    font-size: 12px;
+    color: var(--text-sub);
+    font-weight: 500;
+  }
+
+  .logo-dot {
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s ease infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  h1 {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 12px;
+    line-height: 1.2;
+  }
+
+  .subtitle {
+    font-size: 16px;
+    color: var(--text-sub);
+    font-weight: 400;
+  }
+
+  /* CARD */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+
+  /* TEXTAREA */
+  .input-wrap {
+    position: relative;
+  }
+
+  textarea {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text);
+    resize: none;
+    outline: none;
+    min-height: 180px;
+    padding: 0;
+  }
+
+  textarea::placeholder {
+    color: var(--text-mute);
+  }
+
+  .input-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-soft);
+  }
+
+  .char-count {
+    font-size: 13px;
+    color: var(--text-mute);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn-icon {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-sub);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+
+  .btn-icon:hover {
+    border-color: var(--text-sub);
+    color: var(--text);
+  }
+
+  /* MAIN BUTTON */
+  .btn-main {
+    width: 100%;
+    background: var(--text);
+    color: white;
+    border: none;
+    padding: 16px;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-main:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  }
+
+  .btn-main:active {
+    transform: translateY(0);
+  }
+
+  .btn-main:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* RESULT */
+  .result {
+    margin-top: 24px;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: all 0.4s ease;
+    pointer-events: none;
+  }
+
+  .result.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: all;
+  }
+
+  .score-hero {
+    text-align: center;
+    padding: 40px 24px;
+    border-radius: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .score-hero::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: var(--green);
+    transition: background 0.4s;
+  }
+
+  .score-hero.medium::before { background: var(--amber); }
+  .score-hero.high::before { background: var(--red); }
+
+  .score-label {
+    font-size: 13px;
+    color: var(--text-sub);
+    font-weight: 500;
+    margin-bottom: 8px;
+    letter-spacing: 0.02em;
+  }
+
+  .score-number {
+    font-size: 80px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    color: var(--green);
+    font-variant-numeric: tabular-nums;
+    transition: color 0.4s;
+  }
+
+  .score-hero.medium .score-number { color: var(--amber); }
+  .score-hero.high .score-number { color: var(--red); }
+
+  .score-percent {
+    font-size: 32px;
+    font-weight: 600;
+    margin-left: 4px;
+    opacity: 0.6;
+  }
+
+  .score-verdict {
+    margin-top: 16px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .score-desc {
+    margin-top: 8px;
+    font-size: 14px;
+    color: var(--text-sub);
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* DETAIL */
+  .detail-card {
+    margin-top: 12px;
+    padding: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+  }
+
+  .detail-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-sub);
+    margin-bottom: 16px;
+    letter-spacing: 0.02em;
+  }
+
+  .factor {
+    display: grid;
+    grid-template-columns: 100px 1fr 40px;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-soft);
+  }
+
+  .factor:last-child { border-bottom: none; }
+
+  .factor-name {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .factor-bar-bg {
+    height: 6px;
+    background: var(--border-soft);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+
+  .factor-bar {
+    height: 100%;
+    border-radius: 100px;
+    background: var(--text);
+    width: 0;
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .factor-value {
+    font-size: 13px;
+    color: var(--text-sub);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+
+  /* TIP */
+  .tip {
+    margin-top: 12px;
+    padding: 14px 18px;
+    background: var(--accent-soft);
+    border-radius: 12px;
+    font-size: 13px;
+    color: #003d99;
+    line-height: 1.6;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .tip-icon {
+    flex-shrink: 0;
+    font-size: 16px;
+  }
+
+  /* LOADER */
+  .loader {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* FOOTER */
+  .footer {
+    text-align: center;
+    margin-top: 32px;
+    font-size: 12px;
+    color: var(--text-mute);
+  }
+
+  .footer-note {
+    font-size: 12px;
+    color: var(--text-sub);
+    line-height: 1.6;
+    margin-bottom: 14px;
+    padding: 0 12px;
+  }
+
+  .produced-by {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    color: var(--text-mute);
+    opacity: 0.7;
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 600px) {
+    .container { padding: 32px 16px 60px; }
+    h1 { font-size: 28px; }
+    .subtitle { font-size: 14px; }
+    .score-number { font-size: 64px; }
+    .score-percent { font-size: 24px; }
+    .factor { grid-template-columns: 80px 1fr 40px; gap: 8px; }
+    .factor-name { font-size: 12px; }
+    .char-count { font-size: 11px; }
+    .input-footer { flex-wrap: wrap; gap: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="logo">
+      <span class="logo-dot"></span>
+      <span>AI 작성률 검사기</span>
+    </div>
+    <h1>이 글, AI가 썼을까?</h1>
+    <p class="subtitle">글을 붙여넣고 AI 작성 가능성을 확인해 보세요</p>
+  </div>
+
+  <div class="card">
+    <div class="input-wrap">
+      <textarea 
+        id="inputText" 
+        placeholder="여기에 검사할 글을 붙여넣으세요.&#10;&#10;100자 이상 입력하시면 더 정확한 결과를 얻을 수 있습니다."
+        oninput="updateCount()"></textarea>
+    </div>
+    <div class="input-footer">
+      <span class="char-count" id="charCount">0자 (공백포함) · 0자 (공백제외)</span>
+      <div class="actions">
+        <button class="btn-icon" onclick="loadSample()">예시</button>
+        <button class="btn-icon" onclick="clearAll()">지우기</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-main" id="analyzeBtn" onclick="analyze()">
+    <span id="btnText">분석하기</span>
+  </button>
+
+  <div class="result" id="result">
+    <div class="score-hero" id="scoreHero">
+      <div class="score-label">AI 작성 가능성</div>
+      <div>
+        <span class="score-number" id="scoreNumber">0</span><span class="score-percent">%</span>
+      </div>
+      <div class="score-verdict" id="scoreVerdict">분석 완료</div>
+      <div class="score-desc" id="scoreDesc"></div>
+    </div>
+
+    <div class="detail-card">
+      <div class="detail-title">세부 분석 지표</div>
+      <div id="factors"></div>
+    </div>
+
+    <div class="tip">
+      <span class="tip-icon">💡</span>
+      <span>이 결과는 통계적 패턴 분석에 기반한 <strong>참고 지표</strong>입니다. 최종 판단은 학생과의 면담 등을 통해 내려주세요.</span>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-note">언어 패턴 분석 알고리즘으로 구현, 교육 현장에서 1차 선별용으로 활용 가능한 수준</div>
+    <div class="produced-by">Produced by You Seung-oh</div>
+  </div>
+</div>
+
+<script>
+const sampleAI = `인공지능은 현대 사회에서 매우 중요한 역할을 담당하고 있습니다. 특히 교육 분야에서 AI의 활용은 학생들의 학습 효율을 높이는 데 크게 기여하고 있습니다. 예를 들어, AI 기반 학습 플랫폼은 개별 학생의 수준에 맞춤화된 콘텐츠를 제공하여 학습 경험을 향상시킵니다. 또한 AI는 교사의 업무 부담을 줄여주는 역할도 합니다. 이러한 다양한 이점으로 인해 AI 기술은 앞으로도 교육 분야에서 지속적으로 발전할 것으로 예상됩니다. 결론적으로 AI의 적절한 활용은 교육의 질을 향상시키는 중요한 요소라고 할 수 있습니다.`;
+
+function updateCount() {
+  const text = document.getElementById('inputText').value;
+  const withSpace = text.length;
+  const withoutSpace = text.replace(/\s/g, '').length;
+  document.getElementById('charCount').textContent = 
+    `${withSpace.toLocaleString()}자 (공백포함) · ${withoutSpace.toLocaleString()}자 (공백제외)`;
+}
+
+function loadSample() {
+  document.getElementById('inputText').value = sampleAI;
+  updateCount();
+}
+
+function clearAll() {
+  document.getElementById('inputText').value = '';
+  updateCount();
+  document.getElementById('result').classList.remove('show');
+}
+
+function analyzeAI(text) {
+  const sentences = text.match(/[^.!?。\n]+[.!?。\n]?/g)?.filter(s => s.trim().length > 5) || [];
+  if (sentences.length < 2) return { score: 0, factors: {} };
+
+  // 1) 문장 길이 균일성
+  const lens = sentences.map(s => s.trim().length);
+  const avgLen = lens.reduce((a,b) => a+b, 0) / lens.length;
+  const variance = lens.reduce((a,b) => a + Math.pow(b - avgLen, 2), 0) / lens.length;
+  const cv = Math.sqrt(variance) / avgLen;
+  const uniformityScore = Math.max(0, Math.min(100, (1 - cv) * 100));
+
+  // 2) 어휘 다양성
+  const words = text.toLowerCase().replace(/[^\w\s가-힣]/g, '').split(/\s+/).filter(w => w.length > 1);
+  const uniqueWords = new Set(words);
+  const ttr = uniqueWords.size / words.length;
+  const vocabScore = Math.max(0, Math.min(100, (1 - ttr * 1.5) * 100));
+
+  // 3) AI 특유 연결어
+  const aiMarkers = [
+    '또한', '이러한', '따라서', '결론적으로', '특히', '다양한', '중요한', '효과적인',
+    '기여', '향상', '지속적', '적절한', '효율', '이를 통해', '뿐만 아니라',
+    '예를 들어', '즉', '그러므로', '반면에', '더불어', '한편', '이에 따라',
+    '나아가', '궁극적으로', '전반적으로', '핵심적인', '필수적인'
+  ];
+  const markerCount = aiMarkers.filter(m => text.includes(m)).length;
+  const markerScore = Math.min(100, markerCount * 8);
+
+  // 4) 반복 구조
+  const firstWords = sentences.map(s => s.trim().split(/\s+/)[0]);
+  const firstWordSet = new Set(firstWords);
+  const repetitionScore = Math.max(0, Math.min(100, (1 - firstWordSet.size / firstWords.length) * 150));
+
+  // 5) 개인 경험 표현
+  const personalMarkers = ['나는', '나의', '제가', '저는', '내가', '우리는', '솔직히', '사실', '생각해보면', '경험', '기억'];
+  const personalCount = personalMarkers.filter(m => text.includes(m)).length;
+  const impersonalScore = Math.max(0, Math.min(100, (1 - personalCount * 0.15) * 80));
+
+  const aiScore = (
+    uniformityScore * 0.25 +
+    vocabScore * 0.20 +
+    markerScore * 0.30 +
+    repetitionScore * 0.10 +
+    impersonalScore * 0.15
+  );
+
+  return {
+    score: Math.round(Math.min(95, Math.max(3, aiScore))),
+    factors: {
+      '문장 균일성': Math.round(uniformityScore),
+      'AI 연결어': Math.round(markerScore),
+      '어휘 단조로움': Math.round(vocabScore),
+      '반복 구조': Math.round(repetitionScore),
+      '비개인적 서술': Math.round(impersonalScore),
+    }
+  };
+}
+
+function getVerdict(score) {
+  if (score >= 70) return {
+    level: 'high',
+    title: 'AI가 작성했을 가능성이 매우 높습니다',
+    desc: '문장 패턴이 AI 생성 텍스트의 특징을 강하게 보입니다. 학생과 면담을 통해 작성 과정을 확인해 보시는 것을 권장합니다.'
+  };
+  if (score >= 45) return {
+    level: 'medium',
+    title: 'AI 도움을 받았을 가능성이 있습니다',
+    desc: '일부 AI 보조 작성의 흔적이 보입니다. 구술 확인이나 추가 과제로 검증하면 좋습니다.'
+  };
+  return {
+    level: 'low',
+    title: '직접 작성한 글로 보입니다',
+    desc: '학생이 스스로 작성한 글의 패턴을 보입니다. 자연스러운 표현과 개성이 드러납니다.'
+  };
+}
+
+function analyze() {
+  const text = document.getElementById('inputText').value.trim();
+  if (text.length < 30) {
+    alert('30자 이상 입력해 주세요.');
+    return;
+  }
+
+  const btn = document.getElementById('analyzeBtn');
+  const btnText = document.getElementById('btnText');
+  btn.disabled = true;
+  btnText.innerHTML = '<span class="loader"></span>';
+
+  setTimeout(() => {
+    const result = analyzeAI(text);
+    const verdict = getVerdict(result.score);
+
+    // Score
+    const hero = document.getElementById('scoreHero');
+    hero.classList.remove('medium', 'high');
+    if (verdict.level === 'medium') hero.classList.add('medium');
+    if (verdict.level === 'high') hero.classList.add('high');
+
+    // Animate number
+    animateNumber('scoreNumber', 0, result.score, 800);
+
+    document.getElementById('scoreVerdict').textContent = verdict.title;
+    document.getElementById('scoreDesc').textContent = verdict.desc;
+
+    // Factors
+    const factorsHTML = Object.entries(result.factors).map(([name, val]) => `
+      <div class="factor">
+        <span class="factor-name">${name}</span>
+        <div class="factor-bar-bg"><div class="factor-bar" data-width="${val}"></div></div>
+        <span class="factor-value">${val}</span>
+      </div>
+    `).join('');
+    document.getElementById('factors').innerHTML = factorsHTML;
+
+    document.getElementById('result').classList.add('show');
+
+    // Animate bars
+    setTimeout(() => {
+      document.querySelectorAll('.factor-bar').forEach(bar => {
+        bar.style.width = bar.dataset.width + '%';
+      });
+    }, 100);
+
+    btn.disabled = false;
+    btnText.textContent = '다시 분석하기';
+
+    // Scroll to result
+    setTimeout(() => {
+      document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 200);
+  }, 600);
+}
+
+function animateNumber(id, from, to, duration) {
+  const el = document.getElementById(id);
+  const start = performance.now();
+  function tick(now) {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const current = Math.round(from + (to - from) * eased);
+    el.textContent = current;
+    if (progress < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+</script>
+</body>
+</html>
